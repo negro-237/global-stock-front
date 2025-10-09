@@ -21,6 +21,8 @@ interface AuthStore {
 }
 
 interface Category {
-  id: number;
+  id: number | string;
   name: string;
+  unsynced?: boolean;
+  deleted?: boolean;
 };

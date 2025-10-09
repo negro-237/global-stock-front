@@ -11,7 +11,7 @@ export default function Categories() {
 
     const [openModal, setOpenModal] = useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState<number | null>();
-    const { categories, loading, addCategory, deleteCategory, error } = useCategories();
+    const { categories, loading, addCategory, deleteCategory, error, setError, checkCategoryHasProducts } = useCategories();
 
     const [name, setName] = useState("");
     const [search, setSearch] = useState("");
@@ -74,6 +74,15 @@ export default function Categories() {
 
     const handleDelete = async () => {
       if(categoryToDelete) {
+
+        const hasProducts = await checkCategoryHasProducts(categoryToDelete);
+        if (hasProducts) {
+          alert("Impossible de supprimer cette catégorie : elle contient des produits.");
+          setOpenModal(false);
+          setCategoryToDelete(null);
+          return;
+        }
+
         await deleteCategory(categoryToDelete);
         setCategoryToDelete(null);
         setOpenModal(false);

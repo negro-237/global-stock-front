@@ -4,74 +4,99 @@ import { useEffect, useState } from "react";
 import { api } from "@/../lib/api";
 import { db } from "@/../lib/db";
 
+const STORE_NAME = "categories";
+
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const loadLocalCategories = async () => {
-    const tx = db.transaction("categories", "readonly");
-    const store = tx.objectStore("categories");
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const store = tx.objectStore(STORE_NAME);
     const all = await store.getAll();
-    setCategories(all);
+    setCategories(all.filter((c) => !c.deleted));
     setLoading(false);
     await tx.done;
   };
 
   const syncPendingCategories = async () => {
-   
-    const allCategories = await db.getAll("categories");
-    const pending = allCategories.filter((c) => c.unsynced === true);
-   
-    for (const cat of pending) {
+    if (!navigator.onLine) return;
+
+    const allCategories = await db.getAll(STORE_NAME);
+
+    for (const cat of allCategories) {
+      if (!cat.unsynced) continue;
+
       try {
-        // Envoi au backend
-        const res = await api.post("/categories", { name: cat.name });
-        
-        // ⚙️ Ouvre une nouvelle transaction pour chaque sync
-        const tx = db.transaction("categories", "readwrite");
-        const store = tx.objectStore("categories");
+        if (cat.deleted) {
+          // Suppression différée
+          await api.delete(`/categories/${cat.id}`);
 
-        // Met à jour la catégorie locale avec l'id du backend
-        await store.delete(cat.id); // supprime temporaire
-        const obj = {
-          id: res.data.data.id,
-          name: res.data.data.name,
-          unsynced: false
+          // Ouvre une nouvelle transaction après l'appel
+          const tx = db.transaction(STORE_NAME, "readwrite");
+          await tx.store.delete(cat.id);
+          await tx.done;
+        } 
+        else if (cat.id.toString().startsWith("temp-")) {
+          // Catégorie locale à synchroniser
+          const res = await api.post("/categories", { name: cat.name });
+
+          const tx = db.transaction(STORE_NAME, "readwrite");
+          await tx.store.delete(cat.id);
+          await tx.store.put({ ...res.data.data, unsynced: false });
+          await tx.done;
         }
-        await store.put(obj);
       } catch (err) {
-        console.error("Sync échouée pour", cat.name, err);
+        console.error(`Sync échouée pour ${cat.name} (${err.message})`);
       }
-    } 
+    }
 
-    loadLocalCategories();
+    await loadLocalCategories();
   };
 
-  const addCategory = async (name: string) => {
-    setError("");
-    
-    const tx = db.transaction("categories", "readwrite");
-    const store = tx.objectStore("categories");
-    const all = await store.getAll();
 
-    // Vérifie si une catégorie existe déjà
-    const exists = all.some(
-      (cat) => cat.name.toLowerCase() === name.toLowerCase()
+  const addCategory = async (name: string) => {
+    
+    setError("");
+
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    const existing = (await store.getAll()).find(
+      (c) => c.name.toLowerCase() === name.toLowerCase()
     );
-    if (exists) {
-      console.warn("Catégorie déjà existante :", name);
+
+    if (existing && !existing.deleted) {
+      setError("Cette catégorie existe déjà !");
+      await tx.done;
       return false;
     }
 
-    const newCat = { id: Date.now(), name, unsynced: true };
+    const newCat: Category = {
+      id: navigator.onLine ? Date.now() : `temp-${Date.now()}`,
+      name,
+      unsynced: !navigator.onLine,
+    };
+
     await store.put(newCat);
-    setCategories((prev) => [...prev, newCat]);
+    await tx.done;
+    setError('');
 
     if (navigator.onLine) {
-      await syncPendingCategories();
+      try {
+        const res = await api.post("/categories", { name });
+        const saved = res.data.data;
+        const tx2 = db.transaction(STORE_NAME, "readwrite");
+        const store2 = tx2.objectStore(STORE_NAME);
+        await store2.delete(newCat.id);
+        await store2.put(saved);
+        await tx2.done;
+      } catch {
+        console.warn("Échec d’ajout sur le serveur — mode hors-ligne");
+      }
     }
 
+    await loadLocalCategories();
     return true;
   };
 
@@ -81,43 +106,78 @@ export function useCategories() {
     return allProducts.some(p => p.categoryId === categoryId);
   }
 
-  const deleteCategory = async (id: number) => {
-    const tx = db.transaction("categories", "readwrite");
-    const store = tx.objectStore("categories");
-    await store.delete(id);
-    await tx.done;
-    setCategories((prev) => prev.filter((c) => c.id !== id));
+  const deleteCategory = async (id: number | string) => {
+    // Récupération locale d'abord (transaction courte)
+    let category;
+    {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      category = await tx.store.get(id);
+      await tx.done;
+    }
+
+    if (!category) return;
 
     if (navigator.onLine) {
       try {
+        // Appel API (transaction fermée pendant ce temps)
         await api.delete(`/categories/${id}`);
+
+        // Nouvelle transaction juste pour supprimer localement
+        const tx2 = db.transaction(STORE_NAME, "readwrite");
+        await tx2.store.delete(id);
+        await tx2.done;
       } catch (err) {
-        console.warn("Impossible de supprimer côté serveur (offline)", err.message);
+        console.warn("Suppression serveur échouée, marquée comme offline", err);
+
+        const tx3 = db.transaction(STORE_NAME, "readwrite");
+        await tx3.store.put({ ...category, deleted: true, unsynced: true });
+        await tx3.done;
       }
+    } else {
+      // Mode hors ligne : marquer la suppression
+      const tx4 = db.transaction(STORE_NAME, "readwrite");
+      await tx4.store.put({ ...category, deleted: true, unsynced: true });
+      await tx4.done;
+    }
+
+    await loadLocalCategories();
+  };
+
+
+  const fetchCategories = async () => {
+    setLoading(true);
+    try {
+      if (navigator.onLine) {
+        const res = await api.get("/categories");
+        const serverData = res.data.data;
+
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+
+        // Remplace les données locales
+        await store.clear();
+        for (const cat of serverData) {
+          await store.put(cat);
+        }
+        await tx.done;
+
+        setCategories(serverData);
+      } else {
+        await loadLocalCategories();
+      }
+    } catch (err) {
+      setError("Impossible de charger les catégories");
+      await loadLocalCategories();
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadLocalCategories();
 
-    // Sync dès qu'on repasse en ligne
-    const handleOnline = () => {
-      syncPendingCategories();
-    };
-
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
-  }, []);
-
-    useEffect(() => {
-    const interval = setInterval(() => {
-      if (navigator.onLine) {
-        console.log("Sync périodique des catégories");
-        syncPendingCategories();
-      }
-    }, 5 * 60 * 1000); // toutes les 5 minutes
-
-    return () => clearInterval(interval);
+ useEffect(() => {
+    fetchCategories();
+    window.addEventListener("online", syncPendingCategories);
+    return () => window.removeEventListener("online", syncPendingCategories);
   }, []);
 
   return { 
