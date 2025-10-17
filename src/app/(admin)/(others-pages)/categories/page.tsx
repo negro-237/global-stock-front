@@ -11,7 +11,7 @@ export default function Categories() {
 
     const [openModal, setOpenModal] = useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState<number | null>();
-    const { categories, loading, addCategory, deleteCategory, error, setError, checkCategoryHasProducts } = useCategories();
+    const { categories, loading, addCategory, deleteCategory, error, checkCategoryHasProducts } = useCategories();
 
     const [name, setName] = useState("");
     const [search, setSearch] = useState("");
@@ -153,7 +153,7 @@ export default function Categories() {
             ))}
           </tbody>
         </table>
-         {/* Pagination */}
+        {/* Pagination */}
         <div className="flex justify-between items-center mt-4">
           <Button 
             size="sm" 

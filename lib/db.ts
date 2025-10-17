@@ -1,7 +1,7 @@
 // lib/db.ts
 import { openDB } from "idb";
 
-export const db = await openDB("stock-app", 4, {
+export const db = await openDB("stock-app", 5, {
   upgrade(db) {
    
     if (!db.objectStoreNames.contains("auth")) {
@@ -21,6 +21,13 @@ export const db = await openDB("stock-app", 4, {
 
     if (!db.objectStoreNames.contains("products")) {
       db.createObjectStore("products", {
+        keyPath: "id",
+        autoIncrement: false,
+      });
+    }
+    
+    if (!db.objectStoreNames.contains("supplies")) {
+      db.createObjectStore("supplies", {
         keyPath: "id",
         autoIncrement: false,
       });

@@ -26,3 +26,24 @@ interface Category {
   unsynced?: boolean;
   deleted?: boolean;
 };
+
+interface Product {
+  id: number | string;
+  name: string;
+  category_id: string;
+  price: number;
+  description?: string;
+  quantity?: number;
+  category_name?: string; // Pour afficher le nom de la catégorie
+  total_supplied?: number;
+  unsynced?: boolean;
+  deleted?: boolean;
+};
+
+interface Supply {
+  id: number | string;
+  product_id: string;
+  quantity: number;
+  unsynced?: boolean;
+  deleted?: boolean;
+}

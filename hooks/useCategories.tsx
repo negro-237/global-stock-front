@@ -166,13 +166,12 @@ export function useCategories() {
         await loadLocalCategories();
       }
     } catch (err) {
-      setError("Impossible de charger les catégories");
+      alert("Impossible de charger les catégories");
       await loadLocalCategories();
     } finally {
       setLoading(false);
     }
   };
-
 
  useEffect(() => {
     fetchCategories();
