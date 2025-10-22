@@ -8,16 +8,27 @@ import { useProducts } from "@/../hooks/useProducts";
 import { useCategories } from "@/../hooks/useCategories";
 import { Modal } from "@/components/ui/modal";
 import TextArea from "@/components/form/input/TextArea";
+import Alert from "@/components/ui/alert/Alert";
+import Link from "next/link"; 
 
 export default function Products() {
 
+    const [edit, setEdit] = useState(false);
     const [openFormModal, setFormOpenModal] = useState(false);
     const [openSupplyModal, setOpenSupplyModal] = useState(false);
     const [openModal, setOpenModal] = useState(false);
     const [productToDelete, setProductToDelete] = useState<number | null>();
     const [selectedName, setSelectedName] = useState("");
-    const { products, loading, addProduct, deleteProduct, addSupply } = useProducts();
+    const { 
+        products, 
+        loading, 
+        addProduct, 
+        deleteProduct, 
+        addSupply,
+        editProduct
+    } = useProducts();
     const { categories } = useCategories();
+    const [productToEdit, setProductToEdit] = useState<Product | null>(null);
 
     const [name, setName] = useState("");
     const [category_id, setCategoryId] = useState("");
@@ -25,6 +36,7 @@ export default function Products() {
     const [quantity, setQuantity] = useState<number | null>(null);
     const [description, setDescription] = useState("");
     const [search, setSearch] = useState("");
+    const [error, setError] = useState<string | null>();
 
     const [pagination, setPagination] = useState({
         pageIndex: 0, //initial page index
@@ -47,7 +59,13 @@ export default function Products() {
       }),
       columnHelper.accessor("name", {
         header: "Nom",
-        cell: (info) => <span className="text-gray-800 dark:text-white/90">{info.getValue()}</span>,
+        cell: (info) =>  {
+            <Link
+                href={`/products/${info.row.id}`}
+                className="text-blue-600 hover:underline"
+            >
+                <span className="text-gray-800 dark:text-white/90">{info.getValue()}</span>
+            </Link>},
       }),
       columnHelper.accessor("price", {
         header: "Prix Unitaire",
@@ -67,7 +85,24 @@ export default function Products() {
         cell: (info) => (
             <div className="flex gap-2">
                 <Button className="bg-red-500 hover:bg-red-700" size="sm" onClick={() => { setOpenModal(true); setProductToDelete(info.row.original.id) }}>🗑 Supprimer</Button>
-                <Button size="sm" onClick={() => { setOpenSupplyModal(true); setSelectedName(info.row.original.name); setProductToDelete(info.row.original.id)}}>Approvisionner</Button>
+                <Button size="sm" onClick={() => { setOpenSupplyModal(true); setSelectedName(info.row.original.name); setProductToDelete(info.row.original.id); setError(null); setQuantity(null)}}>Approvisionner</Button>
+                <Button 
+                    size="sm" 
+                    onClick={() => { 
+                        const prod = info.row.original;
+                        setFormOpenModal(true); 
+                        setEdit(true);
+                        setProductToEdit(prod);
+                        setName(prod.name);
+                        setCategoryId(String(prod.category_id));
+                        setPrice(prod.price);
+                        setQuantity(prod.quantity);
+                        setDescription(prod.description || "");
+                        setFormOpenModal(true);
+                    }}
+                >
+                        Editer
+                </Button>
             </div>
         ),
       }),
@@ -89,28 +124,52 @@ export default function Products() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        
-      if (name.trim() && category_id && price) {
-        const added = await addProduct({ name, category_id, price, description, quantity: quantity || 0 });
-        if (!added) {
-          console.log("Cette catégorie existe déjà !");
+
+        if (!name.trim() || !category_id || !price) return;
+
+        if (edit && productToEdit) {
+            // 🔄 Mode édition
+            const updated = await editProduct(productToEdit.id, {
+                name,
+                category_id,
+                price,
+                description,
+            });
+            if (updated) {
+                setEdit(false);
+                setProductToEdit(null);
+                setFormOpenModal(false);
+            }
         } else {
-          setName("");
-          setPrice(null);
-          setCategoryId("");
-          setDescription("");
-          setQuantity(null);
+            // ➕ Mode création
+            const added = await addProduct({
+                name,
+                category_id,
+                price,
+                description,
+                quantity: quantity || 0,
+            });
+
+            if (added) {
+                setName("");
+                setPrice(null);
+                setCategoryId("");
+                setDescription("");
+                setQuantity(null);
+                setFormOpenModal(false);
+            }
         }
-      }
     };
 
     const handleSupplySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setError(null);
+
         if (quantity && quantity > 0) {
             // Appeler l'API pour faire l'approvisionnement
             const added = await addSupply({ product_id: productToDelete !== null && productToDelete !== undefined ? String(productToDelete) : "", quantity });
             if(!added) {
-                alert("Erreur lors de l'ajout de l'approvisionnement");
+                setError('error');
                 return;
             }
             setQuantity(null);
@@ -211,6 +270,7 @@ export default function Products() {
                 </div>
             </div>
 
+            {/* Modal d'ajout et d'approvisionnement */}
             <Modal 
                 isOpen={openSupplyModal}
                 onClose={() => setOpenSupplyModal(false)}
@@ -229,6 +289,12 @@ export default function Products() {
                             <span className="sr-only">Close modal</span>
                         </button>
                     </div>
+
+                    {error && ((
+                        <div className="p-3">
+                            <Alert variant="error" title="erreur" message="Erreur lors de l'approvisionnement" />
+                        </div>
+                    ))}
             
                     <form className="p-4 md:p-5" onSubmit={handleSupplySubmit}>
                         <div className="grid gap-4 mb-4 grid-cols-2">
@@ -266,14 +332,23 @@ export default function Products() {
             {/* Modal d'ajout et d'édition */}
             <Modal 
                 isOpen={openFormModal}
-                onClose={() => setFormOpenModal(false)}
+                onClose={() => {
+                    setFormOpenModal(false);
+                    setEdit(false);
+                    setProductToEdit(null);
+                    setName("");
+                    setCategoryId("");
+                    setPrice(null);
+                    setQuantity(null);
+                    setDescription("");
+                }}
                 showCloseButton={false}
             >
                 <div className="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
                     
                     <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            Ajouter un nouveau produit
+                            {edit ? "Modifier le produit" : "Ajouter un nouveau produit"}
                         </h3>
                         <button onClick={() => setFormOpenModal(false)} type="button" className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="crud-modal">
                             <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
@@ -297,18 +372,20 @@ export default function Products() {
                                     required
                                 />
                             </div>
-                             <div className="col-span-2 sm:col-span-1">
-                                <label htmlFor="quantity" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Stock Initial</label>
-                                <Input 
-                                    value={quantity !== null ? quantity.toString() : ""}
-                                    onChange={(e) => setQuantity(e.target.value === "" ? null : Number(e.target.value))}
-                                    type="number" 
-                                    id="quantity" 
-                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"  
-                                    required 
-                                    placeholder="Ex: 12"
-                                />
-                            </div>
+                            {!edit && ((
+                                <div className="col-span-2 sm:col-span-1">
+                                    <label htmlFor="quantity" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Stock Initial</label>
+                                    <Input 
+                                        value={quantity !== null ? quantity.toString() : ""}
+                                        onChange={(e) => setQuantity(e.target.value === "" ? null : Number(e.target.value))}
+                                        type="number" 
+                                        id="quantity" 
+                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"  
+                                        required 
+                                        placeholder="Ex: 12"
+                                    />
+                                </div>
+                            ))}
                             <div className="col-span-2 sm:col-span-1">
                                 <label htmlFor="price" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Prix Unitaire</label>
                                 <Input 
@@ -321,7 +398,7 @@ export default function Products() {
                                     placeholder="Ex: 1200"
                                 />
                             </div>
-                            <div className="col-span-2 sm:col-span-1">
+                            <div className={edit ? "col-span-2" : "col-span-2 sm:col-span-1"}>
                                 <label htmlFor="category" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Categorie</label>
                                 <select 
                                     id="category" 

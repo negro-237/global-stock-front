@@ -59,105 +59,137 @@ export function useProducts() {
 
     const addSupply = async (supply: Omit<Supply, "id" | "unsynced" | "deleted">) => {
         
-        const tempId = `temp-${Date.now()}`;
-        const newSupply = { id: tempId, ...supply, unsynced: true };
-        const tx = db.transaction(STORE_NAME_SUPPLIES, "readwrite");
-        await tx.store.add(newSupply);
-        await tx.done;
+      const tempId = `temp-${Date.now()}`;
+      const newSupply = { id: tempId, ...supply, unsynced: true };
+      const tx = db.transaction(STORE_NAME_SUPPLIES, "readwrite");
+      await tx.store.add(newSupply);
+      await tx.done;
 
-        const tx_ = db.transaction(STORE_NAME, "readwrite");
-        const store_ = tx_.objectStore(STORE_NAME);
-        const existing = await store_.get(newSupply.product_id);
-        if (!existing) {
-            console.warn("Produit introuvable pour l'approvisionnement");
-            return false;
+      const tx_ = db.transaction(STORE_NAME, "readwrite");
+      const store_ = tx_.objectStore(STORE_NAME);
+      const existing = await store_.get(parseInt(newSupply.product_id));
+     
+      if (!existing) {
+          console.warn("Produit introuvable pour l'approvisionnement");
+          return false;
+      }
+
+      const updatedData = { quantity: (existing.quantity || 0) + supply.quantity };
+      const updated = { ...existing, ...updatedData, unsynced: true };
+      await store_.put(updated);
+      await tx_.done;
+
+      if (navigator.onLine) {
+        try {
+          const res = await api.post(`/products/${supply.product_id}/supplies`, newSupply);
+          const saved = res.data.data;
+          const tx2 = db.transaction(STORE_NAME_SUPPLIES, "readwrite");
+          const store2 = tx2.objectStore(STORE_NAME_SUPPLIES);
+          await store2.delete(newSupply.id);
+          await store2.put(saved);
+          await tx2.done;
+        } catch {
+          alert("Échec d’ajout sur le serveur — mode hors-ligne");
         }
-
-        const updatedData = { quantity: (existing.quantity || 0) + supply.quantity };
-        const updated = { ...existing, ...updatedData, unsynced: true };
-        await store_.put(updated);
-        await tx_.done;
-
-        if (navigator.onLine) {
-            try {
-                const res = await api.post(`/products/${supply.product_id}/supplies`, newSupply);
-                const saved = res.data.data;
-                const tx2 = db.transaction(STORE_NAME_SUPPLIES, "readwrite");
-                const store2 = tx2.objectStore(STORE_NAME_SUPPLIES);
-                await store2.delete(newSupply.id);
-                await store2.put(saved);
-                await tx2.done;
-            } catch {
-                alert("Échec d’ajout sur le serveur — mode hors-ligne");
-            }
-            
-            //await loadLocalProducts();
-            return true;
-        }
+        
+        await loadLocalProducts();
+        return true;
+      }
     }
 
     const addProduct = async (product: Omit<Product, "id" | "unsynced" | "deleted">) => {
        
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        const store = tx.objectStore(STORE_NAME);
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
 
-        const existing = (await store.getAll()).find(
-            (p) => p.name.toLowerCase() === product.name.toLowerCase()
-        );
+      const existing = (await store.getAll()).find(
+          (p) => p.name.toLowerCase() === product.name.toLowerCase()
+      );
     
-        if (existing && !existing.deleted) {
-            alert("Cette catégorie existe déjà !");
-            await tx.done;
-            return false;
+      if (existing && !existing.deleted) {
+          alert("Cette catégorie existe déjà !");
+          await tx.done;
+          return false;
+      }
+
+      const newProd: Product = {
+          id: navigator.onLine ? Date.now() : `temp-${Date.now()}`,
+          name: product.name,
+          category_id: product.category_id,
+          price: product.price, 
+          quantity: product.quantity || 0,
+          description: product.description,
+          unsynced: !navigator.onLine,
+      };
+
+      await store.put(newProd);
+      await tx.done;
+
+      const tempId = `temp-${Date.now()}`;
+      const supply = { product_id: String(newProd.id), quantity: newProd.quantity || 0 };
+      const newSupply = { id: tempId, ...supply, unsynced: true };
+      const tx_1 = db.transaction(STORE_NAME_SUPPLIES, "readwrite");
+      const store_1 = tx_1.objectStore(STORE_NAME_SUPPLIES);
+      await store_1.put(newSupply);
+      await tx_1.done;
+
+      if (navigator.onLine) {
+        try {
+          const res = await api.post("/products", newProd);
+          const product = res.data.data.product;
+          const supply = res.data.data.supply;
+          
+          const tx2 = db.transaction(STORE_NAME, "readwrite");
+          const store2 = tx2.objectStore(STORE_NAME);
+          await store2.delete(newProd.id);
+          await store2.put(product);
+          await tx2.done;
+
+          const tx_2 = db.transaction(STORE_NAME_SUPPLIES, "readwrite");
+          const store_2 = tx_2.objectStore(STORE_NAME_SUPPLIES);
+          await store_2.delete(newSupply.id);
+          await store_2.put(supply);
+          await tx_2.done;
+
+        } catch {
+          console.warn("Échec d’ajout sur le serveur — mode hors-ligne");
         }
-
-        const newProd: Product = {
-            id: navigator.onLine ? Date.now() : `temp-${Date.now()}`,
-            name: product.name,
-            category_id: product.category_id,
-            price: product.price, 
-            quantity: product.quantity || 0,
-            description: product.description,
-            unsynced: !navigator.onLine,
-        };
-
-        await store.put(newProd);
-        await tx.done;
-
-        const tempId = `temp-${Date.now()}`;
-        const supply = { product_id: String(newProd.id), quantity: newProd.quantity || 0 };
-        const newSupply = { id: tempId, ...supply, unsynced: true };
-        const tx_1 = db.transaction(STORE_NAME_SUPPLIES, "readwrite");
-        const store_1 = tx_1.objectStore(STORE_NAME_SUPPLIES);
-        await store_1.put(newSupply);
-        await tx_1.done;
-
-        if (navigator.onLine) {
-              try {
-                const res = await api.post("/products", newProd);
-                const product = res.data.data.product;
-                const supply = res.data.data.supply;
-                
-                const tx2 = db.transaction(STORE_NAME, "readwrite");
-                const store2 = tx2.objectStore(STORE_NAME);
-                await store2.delete(newProd.id);
-                await store2.put(product);
-                await tx2.done;
-
-                const tx_2 = db.transaction(STORE_NAME_SUPPLIES, "readwrite");
-                const store_2 = tx_2.objectStore(STORE_NAME_SUPPLIES);
-                await store_2.delete(newSupply.id);
-                await store_2.put(supply);
-                await tx_2.done;
-
-              } catch {
-                console.warn("Échec d’ajout sur le serveur — mode hors-ligne");
-              }
-            }
-        
-            await loadLocalProducts();
-            return true;
+      }
+      
+      await loadLocalProducts();
+      return true;
     };
+
+    const editProduct = async (id: number | string, updates: Partial<Product>) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const existing = await store.get(id);
+
+      if (!existing) {
+        console.warn("Produit introuvable");
+        await tx.done;
+        return false;
+      }
+
+      const updated = { ...existing, ...updates, unsynced: !navigator.onLine };
+      await store.put(updated);
+      await tx.done;
+
+      if (navigator.onLine) {
+        try {
+          const res = await api.put(`/products/${id}`, updates);
+          const saved = res.data.data;
+          const tx2 = db.transaction(STORE_NAME, "readwrite");
+          await tx2.store.put({ ...saved, unsynced: false });
+          await tx2.done;
+        } catch (err) {
+          console.warn("Échec de mise à jour serveur, mode hors-ligne", err);
+        }
+      }
+
+      await loadLocalProducts();
+      return true;
+   };
 
     const deleteProduct = async (id: number | string) => {
         // Récupération locale d'abord (transaction courte)
@@ -239,6 +271,7 @@ export function useProducts() {
         addProduct,
         deleteProduct,
         setError,
-        addSupply
+        addSupply,
+        editProduct
     };
 }
