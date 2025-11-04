@@ -40,7 +40,6 @@ export default function AdminLayout({
     return null;
   }
 
-  console.log('user', user)
 
   return (
     <div className="min-h-screen xl:flex">

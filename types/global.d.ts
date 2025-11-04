@@ -46,4 +46,5 @@ interface Supply {
   quantity: number;
   unsynced?: boolean;
   deleted?: boolean;
+  created_at?: string;
 }

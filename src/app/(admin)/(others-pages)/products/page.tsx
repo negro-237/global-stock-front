@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { useMemo, useState } from "react";
-import { useReactTable, getCoreRowModel, flexRender, createColumnHelper, getPaginationRowModel } from '@tanstack/react-table'
+import { useReactTable, getCoreRowModel, flexRender, createColumnHelper, getPaginationRowModel } from '@tanstack/react-table';
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
 import { useProducts } from "@/../hooks/useProducts";
@@ -9,10 +9,11 @@ import { useCategories } from "@/../hooks/useCategories";
 import { Modal } from "@/components/ui/modal";
 import TextArea from "@/components/form/input/TextArea";
 import Alert from "@/components/ui/alert/Alert";
-import Link from "next/link"; 
+import {useRouter} from "next/navigation";
 
 export default function Products() {
 
+    const router = useRouter();
     const [edit, setEdit] = useState(false);
     const [openFormModal, setFormOpenModal] = useState(false);
     const [openSupplyModal, setOpenSupplyModal] = useState(false);
@@ -53,59 +54,60 @@ export default function Products() {
     
     const columnHelper = createColumnHelper<Product>();
     const columns = [
-      columnHelper.accessor("id", {
-        header: "#",
-        cell: (info) => <span className="text-gray-800 dark:text-white/90">{info.row.index + 1}</span>,
-      }),
-      columnHelper.accessor("name", {
-        header: "Nom",
-        cell: (info) =>  {
-            <Link
-                href={`/products/${info.row.id}`}
-                className="text-blue-600 hover:underline"
-            >
-                <span className="text-gray-800 dark:text-white/90">{info.getValue()}</span>
-            </Link>},
-      }),
-      columnHelper.accessor("price", {
-        header: "Prix Unitaire",
-        cell: (info) => <span className="text-gray-800 dark:text-white/90">{info.getValue()}</span>,
-      }),
-      columnHelper.accessor("category_name", {
-        header: "Categorie",
-        cell: (info) => <span className="text-gray-800 dark:text-white/90">{info.getValue()}</span>,
-      }),
-      columnHelper.accessor("quantity", {
-        header: "Stock",
-        cell: (info) => <span className="text-gray-800 dark:text-white/90">{info.getValue()}</span>,
-      }),
-      columnHelper.display({
-        id: "actions",
-        header: "Actions",
-        cell: (info) => (
-            <div className="flex gap-2">
-                <Button className="bg-red-500 hover:bg-red-700" size="sm" onClick={() => { setOpenModal(true); setProductToDelete(info.row.original.id) }}>🗑 Supprimer</Button>
-                <Button size="sm" onClick={() => { setOpenSupplyModal(true); setSelectedName(info.row.original.name); setProductToDelete(info.row.original.id); setError(null); setQuantity(null)}}>Approvisionner</Button>
-                <Button 
-                    size="sm" 
-                    onClick={() => { 
-                        const prod = info.row.original;
-                        setFormOpenModal(true); 
-                        setEdit(true);
-                        setProductToEdit(prod);
-                        setName(prod.name);
-                        setCategoryId(String(prod.category_id));
-                        setPrice(prod.price);
-                        setQuantity(prod.quantity);
-                        setDescription(prod.description || "");
-                        setFormOpenModal(true);
-                    }}
+        columnHelper.accessor("id", {
+            header: "#",
+            cell: (info) => <span className="text-gray-800  dark:text-white/90">{info.row.index + 1}</span>
+        }),
+        columnHelper.accessor("name", {
+                header: "Nom",
+                cell: (info) => (
+                <span 
+                    onClick={() => router.push(`/products/${info.row.original.id}`)}
+                    className="text-gray-800 cursor-pointer hover:underline dark:text-white/90"
                 >
-                        Editer
-                </Button>
-            </div>
-        ),
-      }),
+                    {info.getValue()}
+                </span>
+            )
+        }),
+        columnHelper.accessor("price", {
+            header: "Prix Unitaire",
+            cell: (info) => <span className="text-gray-800 dark:text-white/90">{info.getValue()}</span>,
+        }),
+        columnHelper.accessor("category_name", {
+            header: "Categorie",
+            cell: (info) => <span className="text-gray-800 dark:text-white/90">{info.getValue()}</span>,
+        }),
+        columnHelper.accessor("quantity", {
+            header: "Stock",
+            cell: (info) => <span className="text-gray-800 dark:text-white/90">{info.getValue()}</span>,
+        }),
+        columnHelper.display({
+            id: "actions",
+            header: "Actions",
+            cell: (info) => (
+                <div className="flex gap-2">
+                    <Button className="bg-red-500 hover:bg-red-700" size="sm" onClick={() => { setOpenModal(true); setProductToDelete(info.row.original.id) }}>🗑 Supprimer</Button>
+                    <Button size="sm" onClick={() => { setOpenSupplyModal(true); setSelectedName(info.row.original.name); setProductToDelete(info.row.original.id); setError(null); setQuantity(null)}}>Approvisionner</Button>
+                    <Button 
+                        size="sm" 
+                        onClick={() => { 
+                            const prod = info.row.original;
+                            setFormOpenModal(true); 
+                            setEdit(true);
+                            setProductToEdit(prod);
+                            setName(prod.name);
+                            setCategoryId(String(prod.category_id));
+                            setPrice(prod.price);
+                            setQuantity(prod.quantity);
+                            setDescription(prod.description || "");
+                            setFormOpenModal(true);
+                        }}
+                    >
+                            Editer
+                    </Button>
+                </div>
+            ),
+        }),
     ];
 
     const table = useReactTable({ 
@@ -226,26 +228,26 @@ export default function Products() {
 
                     <table className="min-w-full text-left border-collapse border border-gray-300">
                         <thead className="bg-gray-100 dark:bg-gray-800">
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <tr key={headerGroup.id}>
-                            {headerGroup.headers.map((header) => (
-                                <th key={header.id} className="px-4 py-2 border-b border-gray-300">
-                                {flexRender(header.column.columnDef.header, header.getContext())}
-                                </th>
+                            {table.getHeaderGroups().map((headerGroup) => (
+                                <tr key={headerGroup.id}>
+                                {headerGroup.headers.map((header) => (
+                                    <th key={header.id} className="px-4 py-2 border-b border-gray-300">
+                                    {flexRender(header.column.columnDef.header, header.getContext())}
+                                    </th>
+                                ))}
+                                </tr>
                             ))}
-                            </tr>
-                        ))}
                         </thead>
                         <tbody>
-                        {table.getRowModel().rows.map((row) => (
-                            <tr key={row.id}>
-                            {row.getVisibleCells().map((cell) => (
-                                <td key={cell.id} className="px-4 py-2 border-b border-gray-300">
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </td>
+                            {table.getRowModel().rows.map((row) => (
+                                <tr key={row.id}>
+                                    {row.getVisibleCells().map((cell) => (
+                                        <td key={cell.id} className="px-4 py-2 border-b border-gray-300">
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </td>
+                                    ))}
+                                </tr>
                             ))}
-                            </tr>
-                        ))}
                         </tbody>
                     </table>
 

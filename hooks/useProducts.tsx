@@ -8,17 +8,19 @@ const STORE_NAME = "products";
 const STORE_NAME_SUPPLIES = "supplies";
 
 export function useProducts() {
+    const [product, setProduct] = useState<Product | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
+    const [supplies, setSupplies] = useState<Supply[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     const loadLocalProducts = async () => {
-        const tx = db.transaction(STORE_NAME, "readonly");
-        const store = tx.objectStore(STORE_NAME);
-        const all = await store.getAll();
-        setProducts(all.filter((p) => !p.deleted));
-        setLoading(false);
-        await tx.done;
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const all = await store.getAll();
+      setProducts(all.filter((p) => !p.deleted));
+      setLoading(false);
+      await tx.done;
     };
 
     const syncPendingProducts = async () => {
@@ -67,8 +69,9 @@ export function useProducts() {
 
       const tx_ = db.transaction(STORE_NAME, "readwrite");
       const store_ = tx_.objectStore(STORE_NAME);
-      const existing = await store_.get(parseInt(newSupply.product_id));
-     
+      let existing = await store_.get(parseInt(newSupply.product_id));
+      if (!existing) existing = await store_.get(newSupply.product_id);
+      
       if (!existing) {
           console.warn("Produit introuvable pour l'approvisionnement");
           return false;
@@ -93,8 +96,9 @@ export function useProducts() {
         }
         
         await loadLocalProducts();
-        return true;
       }
+      setSupplies((prev) => [...prev, newSupply]);
+      return true;
     }
 
     const addProduct = async (product: Omit<Product, "id" | "unsynced" | "deleted">) => {
@@ -234,19 +238,40 @@ export function useProducts() {
         try {
           if (navigator.onLine) {
             const res = await api.get("/products");
-            const serverData = res.data.data;
-            console.log('server', serverData);
+            const products = res.data.data.products;
+            const supplies = res.data.data.supplies;
+            const categories = res.data.data.categories;
+            //console.log('server', supplies);
             const tx = db.transaction(STORE_NAME, "readwrite");
             const store = tx.objectStore(STORE_NAME);
     
             // Remplace les données locales
             await store.clear();
-            for (const cat of serverData) {
+            for (const cat of products) {
               await store.put(cat);
             }
             await tx.done;
     
-            setProducts(serverData);
+            setProducts(products);
+
+            const tx_ = db.transaction(STORE_NAME_SUPPLIES, "readwrite");
+            const store_ = tx_.objectStore(STORE_NAME_SUPPLIES);
+             // Remplace les données locales
+            await store_.clear();
+            for (const supp of supplies) {
+              await store_.put(supp);
+            }
+            await tx_.done;
+
+            const tx_c = db.transaction("categories", "readwrite");
+            const store_c = tx_c.objectStore("categories");
+             // Remplace les données locales
+            await store_c.clear();
+            for (const cat of categories) {
+              await store_.put(cat);
+            }
+            await tx_c.done;
+
           } else {
             await loadLocalProducts();
           }
@@ -258,10 +283,44 @@ export function useProducts() {
         }
     };
 
+    const showProduct = async (id: string) => {
+      setLoading(true);
+      try {
+          //let data: Product | null = null;
+
+          if (navigator.onLine) {
+              // 🔹 On tente d'abord de récupérer depuis l'API
+              const res = await api.get(`/products/${id}`);
+              setProduct(res.data.data.product);
+              setSupplies(res.data.data.supplies);
+          } else {
+              // 🔹 Si hors-ligne → lecture depuis IndexedDB
+              const tx = db.transaction(STORE_NAME, "readonly");
+              const store = tx.objectStore(STORE_NAME);
+              const local = await store.get(parseInt(id));
+              await tx.done;
+              setProduct(local);
+
+              const tx_ = db.transaction(STORE_NAME_SUPPLIES, "readonly");
+              const store_ = tx_.objectStore(STORE_NAME_SUPPLIES);
+              const all = await store_.getAll();
+              console.log('all', all)
+              await tx_.done;
+              const supplies = all.filter(item => item.product_id == id);
+              console.log('supplies', supplies)
+              setSupplies(supplies);
+          }
+      } catch (err) {
+          console.error("Erreur lors du chargement du produit :", err);
+      } finally {
+          setLoading(false);
+      }
+    };
+
     useEffect(() => {
-        fetchProducts();
-        window.addEventListener("online", syncPendingProducts);
-        return () => window.removeEventListener("online", syncPendingProducts);
+      fetchProducts();
+      window.addEventListener("online", syncPendingProducts);
+      return () => window.removeEventListener("online", syncPendingProducts);
     }, []);
 
     return {
@@ -272,6 +331,10 @@ export function useProducts() {
         deleteProduct,
         setError,
         addSupply,
-        editProduct
+        editProduct,
+        showProduct,
+        product,
+        supplies,
+        setProduct
     };
 }
