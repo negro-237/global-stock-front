@@ -92,7 +92,7 @@ export default function ProductDetailsPage() {
     
                 // Appeler l'API pour faire l'approvisionnement
                 const added = await addSupply({ product_id: productId, quantity });
-                console.log('response', added)
+                //console.log('response', added)
                 if(!added) {
                     setError('error');
                     return;

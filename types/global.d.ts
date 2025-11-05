@@ -27,6 +27,16 @@ interface Category {
   deleted?: boolean;
 };
 
+interface Customer {
+  id: number | string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  unsynced?: boolean;
+  deleted?: boolean;
+};
+
 interface Product {
   id: number | string;
   name: string;
@@ -48,3 +58,15 @@ interface Supply {
   deleted?: boolean;
   created_at?: string;
 }
+
+interface OrderItem {
+  productId: string;
+  quantity: number;
+}
+
+interface Order {
+  id: number | string;
+  OrderItems: OrderItem[];
+  unsynced?: boolean;
+  deleted?: boolean;
+};
