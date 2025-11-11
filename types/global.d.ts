@@ -60,13 +60,16 @@ interface Supply {
 }
 
 interface OrderItem {
-  productId: string;
-  quantity: number;
+  product_id: string;
+  quantity: string;
 }
 
 interface Order {
   id: number | string;
-  OrderItems: OrderItem[];
+  customer_id: number | string;
+  products: OrderItem[];
+  amount?: number;
+  client?: string;
   unsynced?: boolean;
   deleted?: boolean;
 };

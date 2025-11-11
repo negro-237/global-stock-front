@@ -12,27 +12,28 @@ import TextArea from "@/components/form/input/TextArea";
 
 export default function OrdersPage() {
     const [selectedClient, setSelectedClient] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [openModal, setOpenModal] = useState(false);
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
     const [address, setAddress] = useState("");
-    const [error, setError] = useState("");
 
     const { 
         orders, 
         loading,
         customers,
         addCustomer,
-        products
+        products,
+        addOrder,
+        error,
+        isSubmitting
     } = useOrders();
 
     const [orderItems, setOrderItems] = useState([
-        { productId: "", quantity: "" },
+        { product_id: "", quantity: "" },
     ]);
 
     const addNewLine = () => {
-        setOrderItems([...orderItems, { productId: "", quantity: "" }]);
+        setOrderItems([...orderItems, { product_id: "", quantity: "" }]);
     };
 
     const removeLine = (index: number) => {
@@ -72,7 +73,12 @@ export default function OrdersPage() {
 
     const handleOrderSubmit = async (e: React.FormEvent<HTMLFormElement>)  => {
         e.preventDefault();
-        console.log('commande', { selectedClient, orderItems });
+        
+        const added = await addOrder({ customer_id: selectedClient, products: orderItems });
+       
+        if(!added) {
+            return;
+        }
     }
 
     // 🧮 Calcul dynamique de la facture
@@ -80,7 +86,7 @@ export default function OrdersPage() {
         let total = 0;
         const lines = orderItems
             .map((item) => {
-                const prod = products.find((p) => String(p.value) === String(item.productId));
+                const prod = products.find((p) => String(p.value) === String(item.product_id));
                 if (!prod || !item.quantity) return null;
                 const subtotal = Number(item.quantity) * Number(prod.price || 0);
                 total += subtotal;
@@ -144,7 +150,7 @@ export default function OrdersPage() {
                                     <Select
                                         options={products}
                                         placeholder="Sélectionner un produit"
-                                        onChange={(value) => updateItem(index, "productId", value)}
+                                        onChange={(value) => updateItem(index, "product_id", value)}
                                     />
                                 </div>
 
@@ -177,8 +183,12 @@ export default function OrdersPage() {
                         ))}
 
                         <div className="col-span-2 flex justify-end">
-                            <Button type="submit" className="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                                Ajouter la commande      
+                            <Button
+                                disabled={isSubmitting}
+                                type="submit" 
+                                className="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                            >
+                                {isSubmitting ? "Ajout en cours ..." : "Ajouter la commande"}   
                             </Button>
                         </div>
                     </div>

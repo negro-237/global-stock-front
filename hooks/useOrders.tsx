@@ -7,19 +7,18 @@ import { db } from "@/../lib/db";
 const STORE_NAME_CUSTOMERS = "customers";
 const STORE_NAME_ORDERS = "orders";
 
-
 export function useOrders() {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const loadLocalData = async () => {
         const tx = db.transaction(STORE_NAME_CUSTOMERS, "readonly");
         const store = tx.objectStore(STORE_NAME_CUSTOMERS);
         const all = await store.getAll();
-        console.log('customers', all)
         const arr = all.filter((c) => !c.deleted);
         const newArr = [];
         arr.map((c) => (
@@ -29,6 +28,45 @@ export function useOrders() {
         setLoading(false);
         await tx.done;
     };
+
+    const addOrder = async (order: Omit<Order, "id" | "unsynced" | "deleted">) => {
+        
+        setIsSubmitting(true);
+        const tx = db.transaction(STORE_NAME_ORDERS, "readwrite");
+        const store = tx.objectStore(STORE_NAME_ORDERS);
+
+        const newOrder: Order = {
+            id: navigator.onLine ? Date.now() : `temp-${Date.now()}`,
+            customer_id: order.customer_id,
+            products: order.products, 
+            unsynced: !navigator.onLine,
+       };
+
+        await store.put(newOrder);
+        await tx.done;
+
+        if (navigator.onLine) {
+            try {
+                const res = await api.post("/orders", newOrder);
+                const order = res.data.data;
+                
+                const tx2 = db.transaction(STORE_NAME_ORDERS, "readwrite");
+                const store2 = tx2.objectStore(STORE_NAME_ORDERS);
+                await store2.delete(newOrder.id);
+                await store2.put(order);
+                await tx2.done;
+    
+            } catch {
+                setError("Échec d’ajout sur le serveur — mode hors-ligne");
+                console.warn("Échec d’ajout sur le serveur — mode hors-ligne");
+            }
+        }
+
+        //await loadLocalData();
+        setIsSubmitting(false);
+        return true;
+
+    }
 
     const addCustomer = async (customer: Omit<Customer, "id" | "unsynced" | "deleted">) => {
 
@@ -173,7 +211,9 @@ export function useOrders() {
         error,
         addCustomer,
         orders,
-        products
+        products,
+        addOrder,
+        isSubmitting
     };
 
 }
