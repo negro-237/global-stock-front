@@ -25,8 +25,15 @@ export function useOrders() {
             newArr.push({ value: c.id, label: (c.name).toUpperCase(), price: c.price })
         ))
         setCustomers(newArr);
-        setLoading(false);
         await tx.done;
+
+        const tx1 = db.transaction(STORE_NAME_ORDERS, "readonly");
+        const store1 = tx1.objectStore(STORE_NAME_ORDERS);
+        const all1 = await store1.getAll();
+        const arr1 = all1.filter((c) => !c.deleted);
+        setOrders(arr1);
+        await tx1.done;
+        setLoading(false);
     };
 
     const addOrder = async (order: Omit<Order, "id" | "unsynced" | "deleted">) => {
@@ -117,6 +124,7 @@ export function useOrders() {
     const syncPendingData = async () => {
         if (!navigator.onLine) return;  
         const allClients = await db.getAll(STORE_NAME_CUSTOMERS);
+        const allOrders = await db.getAll(STORE_NAME_ORDERS);
 
         for (const prod of allClients) {
             if (!prod.unsynced) continue;   
@@ -144,6 +152,30 @@ export function useOrders() {
             }
         }
 
+        for (const order of allOrders) {
+            if (!order.unsynced) continue;   
+            try {
+                if (order.deleted) {
+                    // Suppression différée
+                    await api.delete(`/orders/${order.id}`);
+                    // Ouvre une nouvelle transaction après l'appel
+                    const tx_ = db.transaction(STORE_NAME_CUSTOMERS, "readwrite");
+                    await tx_.store.delete(order.id);
+                    await tx_.done;
+                }
+                else if (order.id.toString().startsWith("temp-")) {
+                    // Produit local à synchroniser
+                    const res = await api.post("/customers", order);
+                    const tx_ = db.transaction(STORE_NAME_CUSTOMERS, "readwrite");
+                    await tx_.store.delete(order.id);
+                    await tx_.store.put({ ...res.data.data, unsynced: false });
+                    await tx_.done;
+                }   
+            } catch (err) {
+                console.error(`Sync échouée pour ${order.name} (${err.message})`);
+            }
+        }
+
         await loadLocalData();
     };
 
@@ -154,7 +186,10 @@ export function useOrders() {
                 const res = await api.get("/customers");
                 const clients = res.data.data.customers;
                 const products = res.data.data.products;
+                const orders_ = res.data.data.orders;
                 
+                setOrders(orders_);
+
                 const tx = db.transaction(STORE_NAME_CUSTOMERS, "readwrite");
                 const store = tx.objectStore(STORE_NAME_CUSTOMERS);
         
@@ -179,14 +214,14 @@ export function useOrders() {
 
                 setProducts(arrProduct);
 
-                /* const tx_ = db.transaction(STORE_NAME_SUPPLIES, "readwrite");
-                const store_ = tx_.objectStore(STORE_NAME_SUPPLIES);
+                const tx_ = db.transaction(STORE_NAME_ORDERS, "readwrite");
+                const store_ = tx_.objectStore(STORE_NAME_ORDERS);
                   
                 await store_.clear();
-                for (const supp of supplies) {
-                    await store_.put(supp);
+                for (const order of orders_) {
+                    await store_.put(order);
                 }
-                await tx_.done; */
+                await tx_.done;
 
                 } else {
                     await loadLocalData();

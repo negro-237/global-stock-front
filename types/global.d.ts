@@ -61,6 +61,8 @@ interface Supply {
 
 interface OrderItem {
   product_id: string;
+  name?: string;
+  pu?: string
   quantity: string;
 }
 
@@ -72,4 +74,5 @@ interface Order {
   client?: string;
   unsynced?: boolean;
   deleted?: boolean;
+  created_at?: string
 };
