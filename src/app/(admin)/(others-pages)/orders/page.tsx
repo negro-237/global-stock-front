@@ -8,6 +8,8 @@ import Input from "@/components/form/input/InputField";
 import {useRouter} from "next/navigation";
 import { Modal } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
+import api from "../../../../../lib/api";
+
 export default function OrdersPage() {
 
     const [client, setClient] = useState('');
@@ -26,6 +28,27 @@ export default function OrdersPage() {
             orders,
             loading
         } = useOrders();
+     const downloadFile = async (order_id: number) => {
+        try {
+            const response = await api.get(`orders/${order_id}/facture`, {
+                responseType: "blob" // obligatoire pour télécharger
+            });
+
+            const blob = new Blob([response.data], { type: response.headers["content-type"] });
+            const link = document.createElement("a");
+            link.href = window.URL.createObjectURL(blob);
+
+            // Nom automatiquement récupéré via header ou fallback
+            const filename = response.headers["content-disposition"]?.split("filename=")[1] ?? "facture.pdf";
+
+            link.download = filename.replace(/"/g, "");
+            link.click();
+            window.URL.revokeObjectURL(link.href);
+        } catch (error) {
+            console.error("Erreur téléchargement", error);
+        }
+    };
+
 
     const columnHelper = createColumnHelper<Order>();
     const columns = [
@@ -53,19 +76,28 @@ export default function OrdersPage() {
             id: "actions",
             header: "Actions",
             cell: (info) => (
-                <Button
-                    size="sm"
-                    onClick={() => {
-                        const row = info.row.original;
-                        setClient(row.client);
-                        setAmount(row.amount);
-                        setCreated(row.created_at);
-                        setDisplayDetailModal(true);
-                        setSelectedProduct(row.products);
-                    }}
-                >
-                    Details
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        size="sm"
+                        onClick={() => {
+                            const row = info.row.original;
+                            setClient(row.client);
+                            setAmount(row.amount);
+                            setCreated(row.created_at);
+                            setDisplayDetailModal(true);
+                            setSelectedProduct(row.products);
+                        }}
+                    >
+                        Details
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => downloadFile(info.row.original.id)}
+                    >
+                        Télécharger
+                    </Button>
+                </div>
             )
         }),
     ];
