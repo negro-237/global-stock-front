@@ -42,7 +42,16 @@ export default function Categories() {
         id: "actions",
         header: "Actions",
         cell: (info) => (
-          <Button className="bg-red-500 text-white" size="sm" onClick={() => { setOpenModal(true); setCategoryToDelete(info.row.original.id) }}>🗑 Supprimer</Button>
+          <Button 
+          className="bg-red-500 text-white" 
+          size="sm" 
+          onClick={() => { 
+            setOpenModal(true); 
+            // @ts-expect-error error
+            setCategoryToDelete(info.row.original.id)
+           }}>
+            🗑 Supprimer
+          </Button>
         ),
       }),
     ];

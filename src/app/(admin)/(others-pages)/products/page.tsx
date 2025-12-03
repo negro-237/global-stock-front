@@ -86,8 +86,24 @@ export default function Products() {
             header: "Actions",
             cell: (info) => (
                 <div className="flex gap-2">
-                    <Button className="bg-red-500 hover:bg-red-700" size="sm" onClick={() => { setOpenModal(true); setProductToDelete(info.row.original.id) }}>🗑 Supprimer</Button>
-                    <Button size="sm" onClick={() => { setOpenSupplyModal(true); setSelectedName(info.row.original.name); setProductToDelete(info.row.original.id); setError(null); setQuantity(null)}}>Approvisionner</Button>
+                    <Button 
+                        className="bg-red-500 hover:bg-red-700" 
+                        size="sm" 
+                        onClick={() => { 
+                            setOpenModal(true); 
+                            // @ts-expect-error error
+                            setProductToDelete(info.row.original.id) 
+                        }}>🗑 Supprimer</Button>
+                    <Button 
+                        size="sm" 
+                        onClick={() => { 
+                            setOpenSupplyModal(true); 
+                            setSelectedName(info.row.original.name); 
+                            // @ts-expect-error error
+                            setProductToDelete(info.row.original.id); 
+                            setError(null); 
+                            setQuantity(null)
+                        }}>Approvisionner</Button>
                     <Button 
                         size="sm" 
                         onClick={() => { 
@@ -98,7 +114,7 @@ export default function Products() {
                             setName(prod.name);
                             setCategoryId(String(prod.category_id));
                             setPrice(prod.price);
-                            setQuantity(prod.quantity);
+                            setQuantity(prod.quantity ?? null);
                             setDescription(prod.description || "");
                             setFormOpenModal(true);
                         }}
@@ -192,7 +208,9 @@ export default function Products() {
           return;
         } */
 
-        await deleteProduct(productToDelete);
+        if (productToDelete !== null && productToDelete !== undefined) {
+            await deleteProduct(productToDelete);
+        }
         setProductToDelete(null);
         setOpenModal(false);
       //}

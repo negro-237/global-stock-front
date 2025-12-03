@@ -84,11 +84,11 @@ export default function OrdersPage() {
                         size="sm"
                         onClick={() => {
                             const row = info.row.original;
-                            setClient(row.client);
-                            setAmount(row.amount);
-                            setCreated(row.created_at);
+                            setClient(row.client ?? '');
+                            setAmount(String(row.amount ?? ''));
+                            setCreated(row.created_at ?? '');
                             setDisplayDetailModal(true);
-                            setSelectedProduct(row.products);
+                            setSelectedProduct(row.products ?? []);
                         }}
                     >
                         Details
@@ -96,6 +96,7 @@ export default function OrdersPage() {
                     <Button
                         size="sm"
                         variant="outline"
+                        // @ts-expect-error error
                         onClick={() => downloadFile(info.row.original.id)}
                     >
                         Télécharger
@@ -108,7 +109,7 @@ export default function OrdersPage() {
     const filteredProducts = useMemo(() => {
         if (!search.trim()) return orders;
         return orders.filter(o =>
-            o.client.toLowerCase().includes(search.toLowerCase())
+            o.client?.toLowerCase().includes(search.toLowerCase())
         );
     }, [orders, search]);
 

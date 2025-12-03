@@ -259,7 +259,9 @@ export function useOrders() {
         orders,
         products,
         addOrder,
-        isSubmitting
+        isSubmitting,
+        setError,
+        setIsSubmitting
     };
 
 }

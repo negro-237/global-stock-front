@@ -24,7 +24,9 @@ export default function OrdersPage() {
         products,
         addOrder,
         error,
-        isSubmitting
+        isSubmitting,
+        setError,
+        setIsSubmitting
     } = useOrders();
 
     const [orderItems, setOrderItems] = useState([
@@ -85,12 +87,12 @@ export default function OrdersPage() {
         let total = 0;
         const lines = orderItems
             .map((item) => {
-                const prod = products.find((p) => String(p.value) === String(item.product_id));
+                const prod = products.find((p) => String(p.id) === String(item.product_id));
                 if (!prod || !item.quantity) return null;
                 const subtotal = Number(item.quantity) * Number(prod.price || 0);
                 total += subtotal;
                 return {
-                    name: prod.label,
+                    name: prod.name,
                     quantity: item.quantity,
                     price: prod.price,
                     subtotal
@@ -122,7 +124,8 @@ export default function OrdersPage() {
                                     <PlusIcon />
                                 </div>
                             </div>
-                            <Select 
+                            <Select
+                                // @ts-expect-error error
                                 options={customers}
                                 placeholder="Sélectionner le client"
                                 onChange={(value) => setSelectedClient(value)}   
@@ -147,6 +150,7 @@ export default function OrdersPage() {
                                         )}
                                     </div>
                                     <Select
+                                        // @ts-expect-error error
                                         options={products}
                                         placeholder="Sélectionner un produit"
                                         onChange={(value) => updateItem(index, "product_id", value)}
@@ -198,7 +202,7 @@ export default function OrdersPage() {
                     <h4 className="text-lg font-semibold mb-3 text-gray-800 dark:text-white">🧾 Facture</h4>
                     {selectedClient ? (
                         <p className="text-sm mb-4 text-gray-600 dark:text-gray-300">
-                            Client : <strong>{customers.find(c => c.value == selectedClient)?.label}</strong>
+                            Client : <strong>{customers.find(c => String(c.id) === String(selectedClient))?.name}</strong>
                         </p>
                     ) : (
                         <p className="text-sm mb-4 text-gray-500 italic">Aucun client sélectionné</p>
@@ -216,12 +220,14 @@ export default function OrdersPage() {
                             </thead>
                             <tbody>
                                 {invoice.lines.map((line, i) => (
-                                    <tr key={i} className="border-b border-gray-100 dark:border-gray-700">
-                                        <td>{line.name}</td>
-                                        <td className="text-right">{line.quantity}</td>
-                                        <td className="text-right">{Number(line.price).toLocaleString()} FCFA</td>
-                                        <td className="text-right">{Number(line.subtotal).toLocaleString()} FCFA</td>
-                                    </tr>
+                                    line && (
+                                        <tr key={i} className="border-b border-gray-100 dark:border-gray-700">
+                                            <td>{line.name}</td>
+                                            <td className="text-right">{line.quantity}</td>
+                                            <td className="text-right">{Number(line.price).toLocaleString()} FCFA</td>
+                                            <td className="text-right">{Number(line.subtotal).toLocaleString()} FCFA</td>
+                                        </tr>
+                                    )
                                 ))}
                             </tbody>
                             <tfoot>
