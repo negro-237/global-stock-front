@@ -40,11 +40,11 @@ export function useAuth() {
       await set("token", userToken);
 
       return userData;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.data?.message ||
-        err?.response?.data?.data?.error ||
-        err.message ||
+        (err instanceof Error ? err.message : null) ||
+        (err && typeof err === 'object' && 'response' in err ? (err as any).response?.data?.data?.message : null) ||
+        (err && typeof err === 'object' && 'response' in err ? (err as any).response?.data?.data?.error : null) ||
         "Erreur de connexion";
       throw new Error(message);
     }
@@ -53,7 +53,8 @@ export function useAuth() {
   const logout = async () => {
     try {
       await api.post("/logout");
-    } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
       console.warn("Logout échoué, peut-être offline");
     }
     logoutStore();

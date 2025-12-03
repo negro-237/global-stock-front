@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api } from "@/../lib/api";
-import { db } from "@/../lib/db";
+import { getDb } from "@/../lib/db";
 
 const STORE_NAME_CUSTOMERS = "customers";
 const STORE_NAME_ORDERS = "orders";
@@ -16,6 +16,7 @@ export function useOrders() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const loadLocalData = useCallback(async () => {
+        const db = await getDb();
         const tx = db.transaction(STORE_NAME_CUSTOMERS, "readonly");
         const store = tx.objectStore(STORE_NAME_CUSTOMERS);
         const all = await store.getAll();
@@ -40,6 +41,7 @@ export function useOrders() {
     const addOrder = async (order: Omit<Order, "id" | "unsynced" | "deleted">) => {
         
         setIsSubmitting(true);
+        const db = await getDb();
         const tx = db.transaction(STORE_NAME_ORDERS, "readwrite");
         const store = tx.objectStore(STORE_NAME_ORDERS);
 
@@ -78,6 +80,7 @@ export function useOrders() {
 
     const addCustomer = async (customer: Omit<Customer, "id" | "unsynced" | "deleted">) => {
 
+        const db = await getDb();
         const tx = db.transaction(STORE_NAME_CUSTOMERS, "readwrite");
         const store = tx.objectStore(STORE_NAME_CUSTOMERS);
 
@@ -124,6 +127,7 @@ export function useOrders() {
 
     const syncPendingData = useCallback(async () => {
         if (!navigator.onLine) return;  
+        const db = await getDb();
         const allClients = await db.getAll(STORE_NAME_CUSTOMERS);
         const allOrders = await db.getAll(STORE_NAME_ORDERS);
 
@@ -196,6 +200,7 @@ export function useOrders() {
                 
                 setOrders(orders_);
 
+                const db = await getDb();
                 const tx = db.transaction(STORE_NAME_CUSTOMERS, "readwrite");
                 const store = tx.objectStore(STORE_NAME_CUSTOMERS);
         

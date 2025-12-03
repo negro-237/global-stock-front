@@ -4,11 +4,11 @@ import { EcommerceMetrics } from "@/components/ecommerce/EcommerceMetrics";
 import React from "react";
 import MonthlySalesChart from "@/components/ecommerce/MonthlySalesChart";
 import RecentOrders from "@/components/ecommerce/RecentOrders";
-import { useDahboard } from "../../../hooks/useDashboard";
+import { useDashboard } from "../../../hooks/useDashboard";
 
 export default function Dashboard() {
 
-  const { products, orders, sales, months, lastOrders } = useDahboard();
+  const { products, orders, sales, months, lastOrders } = useDashboard();
 
   return (
     <div className="grid grid-cols-12 gap-4 md:gap-6">

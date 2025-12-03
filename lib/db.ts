@@ -1,88 +1,63 @@
 // lib/db.ts
-import { openDB } from "idb";
+import { openDB, IDBPDatabase } from "idb"; // Importez IDBPDatabase pour le type
 
-export const db = await openDB("stock-app", 7, {
-  upgrade(db) {
-   
-    if (!db.objectStoreNames.contains("auth")) {
-      db.createObjectStore("auth");
+let dbPromise: Promise<IDBPDatabase> | null = null;
+
+export const getDb = (): Promise<IDBPDatabase> => {
+    if (dbPromise) {
+        return dbPromise; // Retourne la promesse existante
     }
 
-    // ✅ Table des catégories
-    if (!db.objectStoreNames.contains("categories")) {
-      const store = db.createObjectStore("categories", {
-        keyPath: "id", // chaque catégorie a un ID unique
-        autoIncrement: false,
-      });
+    dbPromise = openDB("stock-app", 7, {
+        upgrade(db) {
+            
+            if (!db.objectStoreNames.contains("auth")) {
+                db.createObjectStore("auth");
+            }
 
-      // Index pour retrouver facilement les éléments non synchronisés
-      store.createIndex("unsynced", "unsynced", { unique: false });
-    }
+            // ✅ Table des catégories
+            if (!db.objectStoreNames.contains("categories")) {
+                const store = db.createObjectStore("categories", {
+                    keyPath: "id", // chaque catégorie a un ID unique
+                    autoIncrement: false,
+                });
 
-    if (!db.objectStoreNames.contains("products")) {
-      db.createObjectStore("products", {
-        keyPath: "id",
-        autoIncrement: false,
-      });
-    }
-    
-    if (!db.objectStoreNames.contains("supplies")) {
-      db.createObjectStore("supplies", {
-        keyPath: "id",
-        autoIncrement: false,
-      });
-    }
+                // Index pour retrouver facilement les éléments non synchronisés
+                store.createIndex("unsynced", "unsynced", { unique: false });
+            }
 
-    if (!db.objectStoreNames.contains("customers")) {
-      db.createObjectStore("customers", {
-        keyPath: "id",
-        autoIncrement: false,
-      });
-    }
+            if (!db.objectStoreNames.contains("products")) {
+                db.createObjectStore("products", {
+                    keyPath: "id",
+                    autoIncrement: false,
+                });
+            }
+            
+            if (!db.objectStoreNames.contains("supplies")) {
+                db.createObjectStore("supplies", {
+                    keyPath: "id",
+                    autoIncrement: false,
+                });
+            }
 
-    if (!db.objectStoreNames.contains("orders")) {
-      db.createObjectStore("orders", {
-        keyPath: "id",
-        autoIncrement: false,
-      });
-    }
-  },
-});
+            if (!db.objectStoreNames.contains("customers")) {
+                db.createObjectStore("customers", {
+                    keyPath: "id",
+                    autoIncrement: false,
+                });
+            }
 
-// --- Fonctions utilitaires pour les catégories ---
-export async function addCategory(category: Category) {
-  return await db.add("categories", { ...category, unsynced: true });
-}
+            if (!db.objectStoreNames.contains("orders")) {
+                db.createObjectStore("orders", {
+                    keyPath: "id",
+                    autoIncrement: false,
+                });
+            }
+        },
+    }) as Promise<IDBPDatabase>; // Ajoutez un cast de type si nécessaire
 
-export async function getCategories() {
-  return await db.getAll("categories");
-}
+    return dbPromise;
+};
 
-export async function deleteCategory(id: number) {
-  return await db.delete("categories", id);
-}
-
-export async function clearCategories() {
-  return await db.clear("categories");
-}
-
-export async function markCategoryAsSynced(id: number) {
-  const category = await db.get("categories", id);
-  if (category) {
-    category.unsynced = false;
-    await db.put("categories", category);
-  }
-}
-
-// Helpers
-export async function setAuthToken(token: string) {
-  await db.put("auth", token, "token");
-}
-
-export async function getAuthToken() {
-  return await db.get("auth", "token");
-}
-
-export async function clearAuthToken() {
-  await db.delete("auth", "token");
-}
+// ANCIEN CODE (SUPPRIMER):
+// export const db = await openDB("stock-app", 7, { ... });

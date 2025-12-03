@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { api } from "@/../lib/api";
-import { db } from "@/../lib/db";
+import { getDb } from "@/../lib/db";
 
 const STORE_NAME = "categories";
 
@@ -12,6 +12,7 @@ export function useCategories() {
   const [error, setError] = useState("");
 
   const loadLocalCategories = useCallback(async () => {
+    const db = await getDb();
     const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
     const all = await store.getAll();
@@ -23,6 +24,7 @@ export function useCategories() {
   const syncPendingCategories = useCallback(async () => {
     if (!navigator.onLine) return;
 
+    const db = await getDb();
     const allCategories = await db.getAll(STORE_NAME);
 
     for (const cat of allCategories) {
@@ -61,6 +63,7 @@ export function useCategories() {
     
     setError("");
 
+    const db = await getDb();
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
     const existing = (await store.getAll()).find(
@@ -103,11 +106,13 @@ export function useCategories() {
 
   const checkCategoryHasProducts = async (categoryId: number) => {
     // Ex: IndexedDB
+    const db = await getDb();
     const allProducts = await db.getAll("products");
     return allProducts.some(p => p.categoryId === categoryId);
   }
 
   const deleteCategory = async (id: number | string) => {
+    const db = await getDb();
     // Récupération locale d'abord (transaction courte)
     let category;
     {
@@ -152,6 +157,7 @@ export function useCategories() {
         const res = await api.get("/categories");
         const serverData = res.data.data;
 
+        const db = await getDb();
         const tx = db.transaction(STORE_NAME, "readwrite");
         const store = tx.objectStore(STORE_NAME);
 

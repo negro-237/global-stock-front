@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/../lib/api";
-import { db } from "@/../lib/db";
+import { getDb } from "@/../lib/db";
 
 const STORE_NAME = "products";
 const STORE_NAME_SUPPLIES = "supplies";
@@ -15,6 +15,7 @@ export function useProducts() {
     const [error, setError] = useState("");
 
     const loadLocalProducts = async () => {
+      const db = await getDb();
       const tx = db.transaction(STORE_NAME, "readonly");
       const store = tx.objectStore(STORE_NAME);
       const all = await store.getAll();
@@ -25,6 +26,7 @@ export function useProducts() {
 
     const syncPendingProducts = async () => {
         if (!navigator.onLine) return;  
+        const db = await getDb();
         const allProducts = await db.getAll(STORE_NAME);
 
         for (const prod of allProducts) {
@@ -64,6 +66,7 @@ export function useProducts() {
         
       const tempId = `temp-${Date.now()}`;
       const newSupply = { id: tempId, ...supply, unsynced: true };
+      const db = await getDb();
       const tx = db.transaction(STORE_NAME_SUPPLIES, "readwrite");
       await tx.store.add(newSupply);
       await tx.done;
@@ -104,6 +107,7 @@ export function useProducts() {
 
     const addProduct = async (product: Omit<Product, "id" | "unsynced" | "deleted">) => {
        
+      const db = await getDb();
       const tx = db.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);
 
@@ -166,6 +170,7 @@ export function useProducts() {
     };
 
     const editProduct = async (id: number | string, updates: Partial<Product>) => {
+      const db = await getDb();
       const tx = db.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);
       const existing = await store.get(id);
@@ -198,8 +203,8 @@ export function useProducts() {
 
     const deleteProduct = async (id: number | string) => {
         // Récupération locale d'abord (transaction courte)
+        const db = await getDb();
         let product: Product | undefined;
-        
         {
           const tx = db.transaction(STORE_NAME, "readonly");
           product = await tx.store.get(id);
@@ -243,6 +248,7 @@ export function useProducts() {
             const supplies = res.data.data.supplies;
             const categories = res.data.data.categories;
             //console.log('server', supplies);
+            const db = await getDb();
             const tx = db.transaction(STORE_NAME, "readwrite");
             const store = tx.objectStore(STORE_NAME);
     
@@ -297,6 +303,7 @@ export function useProducts() {
               setSupplies(res.data.data.supplies);
           } else {
               // 🔹 Si hors-ligne → lecture depuis IndexedDB
+              const db = await getDb();
               const tx = db.transaction(STORE_NAME, "readonly");
               const store = tx.objectStore(STORE_NAME);
               const local = await store.get(parseInt(id));
