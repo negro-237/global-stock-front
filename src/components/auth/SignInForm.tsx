@@ -1,5 +1,4 @@
 "use client";
-import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
@@ -28,13 +27,28 @@ export default function SignInForm() {
     try {
       await login(email, password);
       router.push("/"); // redirection après connexion
-    } catch (err: any) {
-      
-      const serverMessage =
-        err?.response?.data?.data?.message || // message Laravel
-        err?.response?.data?.data?.error ||   // autre clé possible
-        err.message || 
-        "Identifiants invalides";
+    } catch (err: unknown) {
+
+      const getMessageFromUnknown = (e: unknown): string => {
+        if (typeof e === "string") return e;
+        if (e instanceof Error) return e.message;
+        if (typeof e === "object" && e !== null) {
+          // Try to read nested response structure common in axios/Laravel
+          const maybe = e as {
+            response?: { data?: { data?: { message?: string; error?: string } } };
+            message?: string;
+          };
+          return (
+            maybe.response?.data?.data?.message ||
+            maybe.response?.data?.data?.error ||
+            maybe.message ||
+            "Identifiants invalides"
+          );
+        }
+        return "Identifiants invalides";
+      };
+
+      const serverMessage = getMessageFromUnknown(err);
 
       setError(serverMessage);
     } finally {
@@ -50,7 +64,7 @@ export default function SignInForm() {
           className="inline-flex items-center text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
         >
           <ChevronLeftIcon />
-          Retour à l'accueil
+          Retour à l&apos;accueil
         </Link>
       </div>
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">

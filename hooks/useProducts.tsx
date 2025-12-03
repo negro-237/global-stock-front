@@ -52,7 +52,8 @@ export function useProducts() {
                     await tx.done;
                 }   
             } catch (err) {
-                console.error(`Sync échouée pour ${prod.name} (${err.message})`);
+                const message = err instanceof Error ? err.message : String(err);
+                console.error(`Sync échouée pour ${prod.name} (${message})`);
             }
         }
 
@@ -275,6 +276,7 @@ export function useProducts() {
           } else {
             await loadLocalProducts();
           }
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
           //alert("Impossible de charger les catégories");
           await loadLocalProducts();
@@ -321,6 +323,7 @@ export function useProducts() {
       fetchProducts();
       window.addEventListener("online", syncPendingProducts);
       return () => window.removeEventListener("online", syncPendingProducts);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return {

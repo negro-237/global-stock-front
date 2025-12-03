@@ -9,15 +9,12 @@ import {
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
-  ListIcon,
   PieChartIcon,
   PlugInIcon,
-  TableIcon,
   DollarLineIcon,
   CategoryIcon,
   ProductIcon
 } from "../icons/index";
-import SidebarWidget from "./SidebarWidget";
 
 type NavItem = {
   name: string;

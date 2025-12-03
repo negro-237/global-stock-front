@@ -39,7 +39,10 @@ export default function OrdersPage() {
             link.href = window.URL.createObjectURL(blob);
 
             // Nom automatiquement récupéré via header ou fallback
-            const filename = response.headers["content-disposition"]?.split("filename=")[1] ?? "facture.pdf";
+            //const filename = response.headers["content-disposition"]?.split("filename=")[1] ?? "facture.pdf";
+
+            const disposition = response.headers["Content-Disposition"];
+            const filename = disposition && disposition.includes("filename=") ? disposition.split("filename=")[1].replace(/"/g, "") : "facture_" + order_id + ".pdf";
 
             link.download = filename.replace(/"/g, "");
             link.click();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "@/../lib/api";
 import { db } from "@/../lib/db";
 
@@ -11,16 +11,16 @@ export function useCategories() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadLocalCategories = async () => {
+  const loadLocalCategories = useCallback(async () => {
     const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
     const all = await store.getAll();
     setCategories(all.filter((c) => !c.deleted));
     setLoading(false);
     await tx.done;
-  };
+  }, []);
 
-  const syncPendingCategories = async () => {
+  const syncPendingCategories = useCallback(async () => {
     if (!navigator.onLine) return;
 
     const allCategories = await db.getAll(STORE_NAME);
@@ -48,12 +48,13 @@ export function useCategories() {
           await tx.done;
         }
       } catch (err) {
-        console.error(`Sync échouée pour ${cat.name} (${err.message})`);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.error(`Sync échouée pour ${cat.name} (${errorMessage})`);
       }
     }
 
     await loadLocalCategories();
-  };
+  }, [loadLocalCategories]);
 
 
   const addCategory = async (name: string) => {
@@ -144,7 +145,7 @@ export function useCategories() {
   };
 
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
       if (navigator.onLine) {
@@ -165,19 +166,20 @@ export function useCategories() {
       } else {
         await loadLocalCategories();
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       alert("Impossible de charger les catégories");
       await loadLocalCategories();
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadLocalCategories]);
 
- useEffect(() => {
-    fetchCategories();
-    window.addEventListener("online", syncPendingCategories);
-    return () => window.removeEventListener("online", syncPendingCategories);
-  }, []);
+useEffect(() => {
+  fetchCategories();
+  window.addEventListener("online", syncPendingCategories);
+  return () => window.removeEventListener("online", syncPendingCategories);
+}, [fetchCategories, syncPendingCategories]);
 
   return { 
     categories, 

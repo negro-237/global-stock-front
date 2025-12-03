@@ -39,7 +39,7 @@ export default function OrdersPage() {
         setOrderItems((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const updateItem = (index: number, field: string, value: any) => {
+    const updateItem = (index: number, field: string, value: string | number) => {
         setOrderItems((prev) =>
             prev.map((item, i) =>
                 i === index ? { ...item, [field]: value } : item

@@ -72,6 +72,7 @@ export default function ProductDetailsPage() {
 
     const handleSupplySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
             e.preventDefault();
+            setSearch("");
     
             if (quantity && quantity > 0) {
                 // determine product id as a validated string
@@ -117,7 +118,7 @@ export default function ProductDetailsPage() {
             productId = id;
         }
         showProduct(productId);
-    }, [id]);
+    }, [id, showProduct]);
 
   if (loading) return <div className="p-6 text-gray-600">Chargement...</div>;
 

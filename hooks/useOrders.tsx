@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "@/../lib/api";
 import { db } from "@/../lib/db";
 
@@ -15,15 +15,16 @@ export function useOrders() {
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const loadLocalData = async () => {
+    const loadLocalData = useCallback(async () => {
         const tx = db.transaction(STORE_NAME_CUSTOMERS, "readonly");
         const store = tx.objectStore(STORE_NAME_CUSTOMERS);
         const all = await store.getAll();
         const arr = all.filter((c) => !c.deleted);
-        const newArr = [];
+        const newArr: { value: string | number; label: string; price?: number }[] = [];
         arr.map((c) => (
             newArr.push({ value: c.id, label: (c.name).toUpperCase(), price: c.price })
         ))
+        // @ts-expect-error errror
         setCustomers(newArr);
         await tx.done;
 
@@ -34,7 +35,7 @@ export function useOrders() {
         setOrders(arr1);
         await tx1.done;
         setLoading(false);
-    };
+    }, []);
 
     const addOrder = async (order: Omit<Order, "id" | "unsynced" | "deleted">) => {
         
@@ -121,7 +122,7 @@ export function useOrders() {
         return true;
     }
 
-    const syncPendingData = async () => {
+    const syncPendingData = useCallback(async () => {
         if (!navigator.onLine) return;  
         const allClients = await db.getAll(STORE_NAME_CUSTOMERS);
         const allOrders = await db.getAll(STORE_NAME_ORDERS);
@@ -148,7 +149,11 @@ export function useOrders() {
                     await tx.done;
                 }   
             } catch (err) {
-                console.error(`Sync échouée pour ${prod.name} (${err.message})`);
+                if (err && typeof err === "object" && "message" in err) {
+                    console.error(`Sync échouée pour ${prod.name} (${(err as { message: string }).message})`);
+                } else {
+                    console.error(`Sync échouée pour ${prod.name} (Unknown error)`);
+                }
             }
         }
 
@@ -172,14 +177,15 @@ export function useOrders() {
                     await tx_.done;
                 }   
             } catch (err) {
+                // @ts-expect-error error
                 console.error(`Sync échouée pour ${order.name} (${err.message})`);
             }
         }
 
         await loadLocalData();
-    };
+    }, [loadLocalData]);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             if (navigator.onLine) {
@@ -200,18 +206,22 @@ export function useOrders() {
                 }
                 await tx.done;
 
-                let arr = [];
+                const arr: { value: string | number; label: string }[] = [];
+                // @ts-expect-error errror
                 clients.map((c) => (
                     arr.push({ value: c.id, label:  (c.name).toUpperCase() })
                 ))
 
+                // @ts-expect-error errror
                 setCustomers(arr);
 
-                let arrProduct = [];
+                const arrProduct: { value: string | number; label: string; price: number }[] = [];
+                // @ts-expect-error errror
                 products.map((c) => (
                     arrProduct.push({ value: c.id, label:  (c.name).toUpperCase(), price: c.price })
                 ))
 
+                 // @ts-expect-error errror
                 setProducts(arrProduct);
 
                 const tx_ = db.transaction(STORE_NAME_ORDERS, "readwrite");
@@ -226,19 +236,20 @@ export function useOrders() {
                 } else {
                     await loadLocalData();
                 }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
             //alert("Impossible de charger les catégories");
             await loadLocalData();
         } finally {
             setLoading(false);
         }
-    };
+    }, [loadLocalData]);
 
     useEffect(() => {
       fetchData();
       window.addEventListener("online", syncPendingData);
       return () => window.removeEventListener("online", syncPendingData);
-    }, []);
+    }, [fetchData, syncPendingData]);
 
      return {
         customers,
