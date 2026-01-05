@@ -27,10 +27,11 @@ export function useAuth() {
     try {
       const res = await api.post("/login", { email, password });
       const userData = {
-        name: res.data.data.name,
-        email: res.data.data.email,
-        roles: res.data.data.roles
-    };
+        name: String(res.data.data.name),
+        email: String(res.data.data.email),
+        phone: String(res.data.data.phone),
+        roles: [String(res.data.data.roles)]
+      };
       const userToken = res.data.data.token;
 
       setUser(userData);

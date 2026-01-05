@@ -1,9 +1,9 @@
 interface User {
-  id: number;
+  id?: number;
   name: string;
   email: string;
   phone?: string;
-  role?: string[];      // optionnel, ex: admin, user
+  roles?: string[];      // optionnel, ex: admin, user
 }
 
 // Déclare le type de réponse login de Laravel
