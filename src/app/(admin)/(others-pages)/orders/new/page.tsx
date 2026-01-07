@@ -11,7 +11,7 @@ import Alert from "@/components/ui/alert/Alert";
 import TextArea from "@/components/form/input/TextArea";
 
 export default function OrdersPage() {
-    const [selectedClient, setSelectedClient] = useState("");
+    const [selectedClient, setSelectedClient] = useState<string>("");
     const [openModal, setOpenModal] = useState(false);
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
@@ -28,7 +28,7 @@ export default function OrdersPage() {
         setError,
         setIsSubmitting
     } = useOrders();
-
+   
     const [orderItems, setOrderItems] = useState([
         { product_id: "", quantity: "" },
     ]);
@@ -80,6 +80,7 @@ export default function OrdersPage() {
         if(!added) {
             return;
         }
+        //Alert({ variant: "success", title: "Succès", message: "Commande ajoutée avec succès" });
     }
 
     // 🧮 Calcul dynamique de la facture
@@ -87,12 +88,12 @@ export default function OrdersPage() {
         let total = 0;
         const lines = orderItems
             .map((item) => {
-                const prod = products.find((p) => String(p.id) === String(item.product_id));
+                const prod = products.find((p) => String(p.value) === String(item.product_id));
                 if (!prod || !item.quantity) return null;
                 const subtotal = Number(item.quantity) * Number(prod.price || 0);
                 total += subtotal;
                 return {
-                    name: prod.name,
+                    name: prod.label,
                     quantity: item.quantity,
                     price: prod.price,
                     subtotal
@@ -101,6 +102,11 @@ export default function OrdersPage() {
             .filter(Boolean);
         return { lines, total };
     }, [orderItems, products]);
+
+    React.useEffect(() => {
+        setSelectedClient("");
+        setOrderItems([{ product_id: "", quantity: "" }]);
+    }, [customers]);
 
     if (loading) return <div className="p-6 text-gray-600">Chargement...</div>;
 
@@ -128,7 +134,7 @@ export default function OrdersPage() {
                                 // @ts-expect-error error
                                 options={customers}
                                 placeholder="Sélectionner le client"
-                                onChange={(value) => setSelectedClient(value)}   
+                                onChange={(value) => setSelectedClient(value)}
                             />
                         </div>
 
@@ -202,13 +208,13 @@ export default function OrdersPage() {
                     <h4 className="text-lg font-semibold mb-3 text-gray-800 dark:text-white">🧾 Facture</h4>
                     {selectedClient ? (
                         <p className="text-sm mb-4 text-gray-600 dark:text-gray-300">
-                            Client : <strong>{customers.find(c => String(c.id) === String(selectedClient))?.name}</strong>
+                            Client : <strong>{customers.find(c => String(c.value) === selectedClient)?.label}</strong>
                         </p>
                     ) : (
                         <p className="text-sm mb-4 text-gray-500 italic">Aucun client sélectionné</p>
                     )}
 
-                    {invoice.lines.length > 0 ? (
+                    {invoice.lines.length ? (
                         <table className="w-full text-sm border-collapse">
                             <thead>
                                 <tr className="border-b border-gray-300 dark:border-gray-700">
@@ -224,7 +230,7 @@ export default function OrdersPage() {
                                         <tr key={i} className="border-b border-gray-100 dark:border-gray-700">
                                             <td>{line.name}</td>
                                             <td className="text-right">{line.quantity}</td>
-                                            <td className="text-right">{Number(line.price).toLocaleString()} FCFA</td>
+                                            <td className="text-right">{Number(line.price).toLocaleString()}</td>
                                             <td className="text-right">{Number(line.subtotal).toLocaleString()} FCFA</td>
                                         </tr>
                                     )
