@@ -21,7 +21,7 @@ export function useOrders() {
         const store = tx.objectStore(STORE_NAME_CUSTOMERS);
         const all = await store.getAll();
         const arr = all.filter((c) => !c.deleted);
-        const newArr: { value: string | number; label: string; price?: number }[] = [];
+        const newArr: { value: string | number; label: string }[] = [];
         arr.map((c) => (
             newArr.push({ value: c.id, label: (c.name).toUpperCase() })
         ))
@@ -212,21 +212,18 @@ export function useOrders() {
                 await tx.done;
 
                 const arr: { value: string | number; label: string }[] = [];
-                // @ts-expect-error errror
-                clients.map((c) => (
+                clients.map((c: Customer) => (
                     arr.push({ value: c.id, label:  (c.name).toUpperCase() })
                 ))
 
-                // @ts-expect-error errror
                 setCustomers(arr);
 
                 const arrProduct: { value: string | number; label: string; price: number }[] = [];
-                // @ts-expect-error errror
-                products.map((c) => (
+                
+                products.map((c: Product) => (
                     arrProduct.push({ value: c.id, label:  (c.name).toUpperCase(), price: c.price })
                 ))
 
-                 // @ts-expect-error errror
                 setProducts(arrProduct);
 
                 const tx_ = db.transaction(STORE_NAME_ORDERS, "readwrite");
