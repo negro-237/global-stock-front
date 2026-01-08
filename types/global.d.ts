@@ -38,6 +38,12 @@ interface Customer {
   deleted?: boolean;
 };
 
+interface CustomerSeletctOption {
+  value: number | string;
+  label: string;
+  price: number;
+}
+
 interface Product {
   id: number | string;
   name: string;

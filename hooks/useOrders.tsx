@@ -8,7 +8,7 @@ const STORE_NAME_CUSTOMERS = "customers";
 const STORE_NAME_ORDERS = "orders";
 
 export function useOrders() {
-    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [customers, setCustomers] = useState<CustomerSeletctOption[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
