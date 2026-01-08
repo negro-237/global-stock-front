@@ -30,24 +30,60 @@ export default function OrdersPage() {
     } = useOrders();
    
     const [orderItems, setOrderItems] = useState([
-        { product_id: "", quantity: "" },
+        { product_id: "", quantity: "", balance: 0 },
     ]);
 
     const addNewLine = () => {
-        setOrderItems([...orderItems, { product_id: "", quantity: "" }]);
+        setOrderItems([...orderItems, { product_id: "", quantity: "", balance: 0 }]);
     };
 
     const removeLine = (index: number) => {
         setOrderItems((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const updateItem = (index: number, field: string, value: string | number) => {
+    const getAvailableProducts = (currentIndex: number) => {
+        const selectedProductIds = orderItems
+            .filter((_, i) => i !== currentIndex)
+            .map(item => String(item.product_id))
+            .filter(Boolean);
+
+        return products.filter(
+            (product) =>
+                !selectedProductIds.includes(String(product.value))
+        );
+    };
+
+    /* const updateItem = (index: number, field: string, value: string | number) => {
         setOrderItems((prev) =>
             prev.map((item, i) =>
                 i === index ? { ...item, [field]: value } : item
             )
         );
+    }; */
+    const updateItem = (index: number, field: string, value: string | number) => {
+        // @ts-expect-error error
+        setOrderItems((prev) =>
+            prev.map((item, i) => {
+                if (i !== index) return item;
+
+                // 👉 si on sélectionne un produit
+                if (field === "product_id") {
+                    const prod = products.find(
+                        (p) => String(p.value) === String(value)
+                    );
+
+                    return {
+                        ...item,
+                        product_id: value,
+                        balance: prod ? Number(prod.balance ?? 0) : 0,
+                    };
+                }
+
+                return { ...item, [field]: value };
+            })
+        );
     };
+
 
     const handleCustomerSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -105,7 +141,7 @@ export default function OrdersPage() {
 
     React.useEffect(() => {
         setSelectedClient("");
-        setOrderItems([{ product_id: "", quantity: "" }]);
+        setOrderItems([{ product_id: "", quantity: "", balance: 0 }]);
     }, [customers]);
 
     if (loading) return <div className="p-6 text-gray-600">Chargement...</div>;
@@ -157,13 +193,22 @@ export default function OrdersPage() {
                                     </div>
                                     <Select
                                         // @ts-expect-error error
-                                        options={products}
+                                        options={getAvailableProducts(index)}
                                         placeholder="Sélectionner un produit"
                                         onChange={(value) => updateItem(index, "product_id", value)}
+                                        value={item.product_id}
                                     />
+                                    {item.product_id && (
+                                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                                        Stock disponible :
+                                        <span className="ml-1 font-semibold text-blue-600 dark:text-blue-400">
+                                            {item.balance}
+                                        </span>
+                                    </p>
+                                    )}
                                 </div>
 
-                                <div className="col-span-2 sm:col-span-1 flex items-end gap-2">
+                                <div className="col-span-2 sm:col-span-1 flex items-start gap-2">
                                     <div className="flex-1">
                                         <label htmlFor={`qty-${index}`} className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                                             Quantité

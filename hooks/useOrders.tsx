@@ -218,10 +218,10 @@ export function useOrders() {
 
                 setCustomers(arr);
 
-                const arrProduct: { value: string | number; label: string; price: number }[] = [];
+                const arrProduct: { value: string | number; label: string; price: number, balance?: number }[] = [];
                 
                 products.map((c: Product) => (
-                    arrProduct.push({ value: c.id, label:  (c.name).toUpperCase(), price: c.price })
+                    arrProduct.push({ value: c.id, label:  (c.name).toUpperCase(), price: c.price, balance: c.balance })
                 ))
 
                 setProducts(arrProduct);

@@ -48,6 +48,7 @@ interface ProductSelectOption {
   value: number | string; 
   label: string; 
   price: number;
+  balance?: number;
 }
 
 interface Product {
@@ -61,6 +62,7 @@ interface Product {
   total_supplied?: number;
   unsynced?: boolean;
   deleted?: boolean;
+  balance?: number;
 };
 
 interface Supply {
