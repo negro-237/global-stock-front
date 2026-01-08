@@ -41,6 +41,12 @@ interface Customer {
 interface CustomerSeletctOption {
   value: number | string;
   label: string;
+  //price: number;
+}
+
+interface ProductSelectOption {
+  value: number | string; 
+  label: string; 
   price: number;
 }
 

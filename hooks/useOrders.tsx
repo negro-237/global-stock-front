@@ -9,7 +9,7 @@ const STORE_NAME_ORDERS = "orders";
 
 export function useOrders() {
     const [customers, setCustomers] = useState<CustomerSeletctOption[]>([]);
-    const [products, setProducts] = useState<Product[]>([]);
+    const [products, setProducts] = useState<ProductSelectOption[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -23,7 +23,7 @@ export function useOrders() {
         const arr = all.filter((c) => !c.deleted);
         const newArr: { value: string | number; label: string; price?: number }[] = [];
         arr.map((c) => (
-            newArr.push({ value: c.id, label: (c.name).toUpperCase(), price: c.price })
+            newArr.push({ value: c.id, label: (c.name).toUpperCase() })
         ))
         // @ts-expect-error errror
         setCustomers(newArr);
