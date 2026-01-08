@@ -25,7 +25,7 @@ export function useOrders() {
         arr.map((c) => (
             newArr.push({ value: c.id, label: (c.name).toUpperCase() })
         ))
-        // @ts-expect-error errror
+        
         setCustomers(newArr);
         await tx.done;
 
