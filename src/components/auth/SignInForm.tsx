@@ -14,43 +14,20 @@ export default function SignInForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
-  const { login } = useAuth();
+  const { login, error, setError } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setIsSubmitting(true);
+    setError(null);
 
     try {
       await login(email, password);
-      router.push("/"); // redirection après connexion
+      //router.push("/"); // redirection après connexion
     } catch (err: unknown) {
-
-      const getMessageFromUnknown = (e: unknown): string => {
-        if (typeof e === "string") return e;
-        if (e instanceof Error) return e.message;
-        if (typeof e === "object" && e !== null) {
-          // Try to read nested response structure common in axios/Laravel
-          const maybe = e as {
-            response?: { data?: { data?: { message?: string; error?: string } } };
-            message?: string;
-          };
-          return (
-            maybe.response?.data?.data?.message ||
-            maybe.response?.data?.data?.error ||
-            maybe.message ||
-            "Identifiants invalides"
-          );
-        }
-        return "Identifiants invalides";
-      };
-
-      const serverMessage = getMessageFromUnknown(err);
-
-      setError(serverMessage);
+      console.log(err);
     } finally {
       setIsSubmitting(false);
     }
