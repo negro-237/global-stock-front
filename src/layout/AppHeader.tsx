@@ -84,7 +84,7 @@ const AppHeader: React.FC = () => {
 
           <Link href="/" className="lg:hidden">
             <h1 className="mb-2 font-bold text-gray-400 text-title-sm dark:text-white sm:text-title-md">
-              Stock-App
+              Fluxo
             </h1>
           </Link>
 

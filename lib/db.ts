@@ -8,7 +8,7 @@ export const getDb = (): Promise<IDBPDatabase> => {
         return dbPromise; // Retourne la promesse existante
     }
 
-    dbPromise = openDB("stock-app", 7, {
+    dbPromise = openDB("Fluxo", 7, {
         upgrade(db) {
             
             if (!db.objectStoreNames.contains("auth")) {
@@ -60,4 +60,4 @@ export const getDb = (): Promise<IDBPDatabase> => {
 };
 
 // ANCIEN CODE (SUPPRIMER):
-// export const db = await openDB("stock-app", 7, { ... });
+// export const db = await openDB("Fluxo", 7, { ... });

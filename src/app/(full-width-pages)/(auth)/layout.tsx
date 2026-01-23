@@ -19,7 +19,7 @@ export default function AuthLayout({
               <GridShape />
               <div className="flex flex-col items-center max-w-xs">
                 <h1 className="mb-2 font-semibold text-gray-400 text-title-sm dark:text-white sm:text-title-md">
-                  Stock-App
+                  Fluxo
                 </h1>
                 <p className="text-center text-gray-400 dark:text-white/60">
                   gérez vos stocks facilement grâce à notre application avec ou sans

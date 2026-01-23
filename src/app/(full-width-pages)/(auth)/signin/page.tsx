@@ -2,7 +2,7 @@ import SignInForm from "@/components/auth/SignInForm";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Stock-App | Connexion",
+  title: "Fluxo | Connexion",
   description: "gérez vos stocks facilement grâce à notre application avec ou sans connexion internet",
 };
 

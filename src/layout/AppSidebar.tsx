@@ -325,12 +325,12 @@ const AppSidebar: React.FC = () => {
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <h1 className="mb-2 font-semibold text-gray-400 text-title-sm dark:text-white">
-                  Stock-App
+                  Fluxo
               </h1>
             </>
           ) : (
             <h1 className="mb-2 font-semibold text-gray-400 text-title-sm dark:text-white">
-              Stock-App
+              Fluxo
             </h1>
           )}
         </Link>
